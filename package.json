@@ -1,8 +1,8 @@
 {
     "name": "generate_sp",
     "version": "0.1.0",
-    "private": false,
-    "homepage": ".",
+    "private": true,
+    "homepage": "https://store-generator.vercel.app",
     "dependencies": {
         "@ant-design/icons": "^5.2.5",
         "@testing-library/jest-dom": "^5.17.0",
