@@ -52,8 +52,10 @@ const StoreProcedure = () => {
                 storeProcedure = StoreProcedureInstance.delete();
                 break;
             case GENERATE_OPTIONS.GET_DETAIL:
+                storeProcedure = StoreProcedureInstance.getDetail();
                 break;
             case GENERATE_OPTIONS.GET_LIST:
+                storeProcedure = StoreProcedureInstance.getList();
                 break;
             case GENERATE_OPTIONS.CREATE_OR_UPDATE:
                 storeProcedure = StoreProcedureInstance.createOrUpdate();

@@ -10,6 +10,10 @@ class GenerateSP {
         this.table = extractTableData(table);
         this.prefix = prefix;
         this.PR = this.table.selected_primary_key;
+        this.alias = this.table.table_name
+            .split("_")
+            .map((word) => word[0])
+            .join("");
     }
     delete(input = []) {
         const tableName = this.table.table_name;
@@ -147,19 +151,20 @@ class GenerateSP {
                             ? fields.includes(field.field_name)
                             : true
                     )
-                    ?.map(
-                        (field) =>
-                            `${this.table.table_name}.${field.field_name}`
-                    )
+                    ?.map((field) => {
+                        console.log(field.data_type);
+                        return field.data_type === "datetime"
+                            ? `CONVERT(VARCHAR(20), ${this.alias}.${field.field_name}, 103)`
+                            : `${this.alias}.${field.field_name}`;
+                    })
                     ?.join(",")}
-            FROM dbo.${this.table.field}
+            FROM dbo.${this.table.table_name} ${this.alias}
             WHERE ${this.PR.field_name} = @${this.PR.field_name}
             ${
                 this.table.is_deleted_field
                     ? `AND ${this.table.table_name}.${this.table.is_deleted_field.field_name} = 0`
                     : ""
             }
-            
         END
         GO
 
@@ -172,8 +177,8 @@ class GenerateSP {
 
         const searchFields = this.table.field_list.filter(
             (field) =>
-                field.field_name.includes("name") ||
-                field.field_name.includes("code")
+                field.field_name?.toLowerCase().includes("name") ||
+                field.field_name?.toLowerCase().includes("code")
         );
 
         return `
@@ -185,45 +190,53 @@ class GenerateSP {
             @PAGESIZE INT = 25,
             @PAGEINDEX INT = 1,
             @KEYWORD NVARCHAR(250) = NULL,
+            @CREATEDDATEFROM nvarchar(25) = NULL, 
+            @CREATEDDATETO nvarchar(25) = NULL
         AS BEGIN
             SET @KEYWORD = LTRIM(RTRIM(@KEYWORD));
             IF @KEYWORD ='' SET @KEYWORD = NULL;
+            IF @CREATEDDATEFROM = '' SET @CREATEDDATEFROM = NULL;
+            IF @CREATEDDATETO = '' SET @CREATEDDATETO = NULL; 
+
+            DECLARE @DATEFROM datetime = NULL 
+            DECLARE @DATETO datetime = NULL
+            IF @CREATEDDATEFROM IS NOT NULL  SET @DATEFROM = TRY_CONVERT(DATETIME, @CREATEDDATEFROM, 103)
+            IF @CREATEDDATETO IS NOT NULL  SET @DATETO = TRY_CONVERT(DATETIME, @CREATEDDATETO, 103)
 
             SELECT
+                COUNT(1) OVER() AS TOTALITEMS,
                 ${selectedFields
                     .map((field) => {
                         if (field.data_type === "datetime") {
-                            return `FORMAT(${this.table.table_name}.${field.field_name}, 'DD/MM/YYYY') AS ${field.field_name}`;
+                            return `FORMAT(VARCHAR(20),${this.alias}.${field.field_name}, 103) AS ${field.field_name}`;
                         } else if (
                             field.field_name === SPECIAL_FIELDS.CREATED_USER
                         ) {
-                            return `IIF(${this.table.table_name}.${this.table.created_user_field.field_name} = 'administrator', SYS_USER.FULLNAME, SYS_USER.USERNAME + '-' + SYS_USER.FULLNAME ) AS ${this.table.created_user_field.field_name}`;
+                            return `IIF(${this.alias}.${this.table.created_user_field.field_name} = 'administrator', SYS_USER.FULLNAME, SYS_USER.USERNAME + '-' + SYS_USER.FULLNAME ) AS ${this.table.created_user_field.field_name}`;
                         }
-                        return `${this.table.table_name}.${field.field_name}`;
+                        return `${this.alias}.${field.field_name}`;
                     })
                     .join(",")}
-            FROM ${this.table.table_name}
+            FROM ${this.table.table_name} ${this.alias}
             ${
                 this.table.created_user_field
                     ? `LEFT JOIN SYS_USER 
-                    ON ${this.table.table_name}.${this.table.created_user_field.field_name} = SYS_USER.USERNAME`
+                    ON ${this.alias}.${this.table.created_user_field.field_name} = SYS_USER.USERNAME`
                     : ""
             }
-            WHERE (@KEYWORD IS NULL OR (
-                ${searchFields
-                    ?.map(
-                        (field) =>
-                            `${this.table.table_name}.${field.field_name} LIKE '%' + @KEYWORD + '%' collate Latin1_General_CI_AI_WS`
-                    )
-                    ?.join(" OR ")}
+            WHERE (@KEYWORD IS NULL 
+                ${searchFields?.map(
+                    (field) =>
+                        `OR (${this.alias}.${field.field_name} LIKE '%' + @KEYWORD + '%' collate Latin1_General_CI_AI_WS)`
+                )})
             ${
                 this.table.is_deleted_field
-                    ? `${this.table.is_deleted_field.field_name} = 0`
+                    ? `AND ${this.table.is_deleted_field.field_name} = 0`
                     : ""
             } 
             ${
                 this.table.created_date_field
-                    ? `ORDER BY ${this.table.table_name}.${this.table.created_date_field.field_name} DESC`
+                    ? `ORDER BY ${this.alias}.${this.table.created_date_field.field_name} DESC`
                     : ""
             }
 
