@@ -77,6 +77,7 @@ class GenerateSP {
         SET QUOTED_IDENTIFIER ON
         GO
         CREATE PROCEDURE [dbo].[${tableName}_CreateOrUpdate_${this.prefix}]
+            @${primaryKey.field_name} ${primaryKey.data_type}, 
             ${genInputParams(inputParams)}
         AS
         BEGIN

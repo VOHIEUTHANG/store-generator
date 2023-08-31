@@ -30,6 +30,10 @@ const DataTypeOptions = [
         value: "datetime",
         label: "datetime",
     },
+    {
+        value: "money",
+        label: "money",
+    },
 ];
 
 const StoreProcedureOptions = [
