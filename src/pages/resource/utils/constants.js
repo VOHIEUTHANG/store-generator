@@ -1,0 +1,4 @@
+export const SUBMIT_TYPE = {
+  GENERATE_SP: "GENERATE_SP",
+  TAKE_RESOURCE: "TAKE_RESOURCE",
+};

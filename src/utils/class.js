@@ -1,6 +1,6 @@
 export default class Response {
-    constructor(data, status) {
-        this.data = data;
-        this.status = status;
-    }
+  constructor(data, status) {
+    this.data = data;
+    this.status = status;
+  }
 }
